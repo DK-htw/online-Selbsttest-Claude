@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ordnungen-Check kombiniert</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1d2330;--mu:#5b6475;--ac:#0b5cab;--ok:#1a7f3c;--okbg:#e6f4ea;--no:#b3261e;--nobg:#fce8e6;--bd:#d9dde4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171d;--card:#1e222b;--tx:#e8ebf0;--mu:#9aa3b5;--ac:#6cb2ff;--ok:#6fd48c;--okbg:#17301f;--no:#ff8a80;--nobg:#3a1c1a;--bd:#343a47;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14171d;--card:#1e222b;--tx:#e8ebf0;--mu:#9aa3b5;--ac:#6cb2ff;--ok:#6fd48c;--okbg:#17301f;--no:#ff8a80;--nobg:#3a1c1a;--bd:#343a47;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:22px;margin-bottom:16px}
+h1{font-size:1.5rem;margin:0 0 8px}h2{font-size:1.15rem;margin:0 0 12px}
+.mu{color:var(--mu);font-size:.9rem}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:11px 20px;font-weight:600}
+:root[data-theme="dark"] .btn{color:#10141a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#10141a}}
+.opt{display:block;width:100%;text-align:left;background:var(--card);color:var(--tx);border:1.5px solid var(--bd);border-radius:10px;padding:12px 14px;margin:8px 0}
+.opt:hover:not(:disabled){border-color:var(--ac)}
+.opt.ok{background:var(--okbg);border-color:var(--ok)}
+.opt.no{background:var(--nobg);border-color:var(--no)}
+.opt:disabled{cursor:default;color:var(--tx)}
+.bar{height:8px;background:var(--bd);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .3s}
+.tag{display:inline-block;font-size:.78rem;background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;color:var(--mu);margin-bottom:10px}
+.fb{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--bg);font-size:.95rem}
+.score{font-size:2.4rem;font-weight:700;margin:4px 0}
+.pass{color:var(--ok)}.fail{color:var(--no)}
+.rev{border-top:1px solid var(--bd);padding:12px 0;font-size:.93rem}
+.hide{display:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<main>
+<section id="start" class="card">
+<h1>Ordnungen-Check kombiniert</h1>
+<p>15 Fragen, die mehrere Studien- und Prüfungsordnungen der Fakultät Wirtschaftswissenschaften der HTW Dresden verbinden: sieben Vergleichsfragen zu den Studiengängen und acht Fragen zu allgemeinen Regeln. Ab 8 richtigen Antworten (mindestens 50 %) ist der Test bestanden.</p>
+<p class="mu">Grundlage sind fünf Prüfungsordnungen mit Prüfungsablaufplan: Bachelor Betriebswirtschaft (W71b2024), Bachelor International Business (W74b2024), Master International Management (W75m2019), Master Management mittelständischer Unternehmen (W76m2023) und Master German Business Culture and International Management (W79m2023). Noch nicht berücksichtigt sind Wirtschaftsingenieurwesen, HRM, die Studienordnungen und die Praktikumsordnung. Maßgeblich sind immer die amtlich bekannt gemachten Fassungen.</p>
+<button class="btn" id="go">Test starten</button>
+</section>
+<section id="quiz" class="card hide">
+<div class="bar"><i id="pg"></i></div>
+<div class="mu" id="cnt"></div>
+<span class="tag" id="src"></span>
+<h2 id="q"></h2>
+<div id="opts"></div>
+<div id="fb" class="fb hide"></div>
+<p><button class="btn hide" id="nx">Weiter</button></p>
+</section>
+<section id="res" class="card hide"></section>
+</main>
+<script>
+var Q=[
+{s:'Vergleich: alle Studiengänge',q:'Welche Regelstudienzeit (Vollzeit) gilt in den Studiengängen?',o:['Bachelor BW/IB: 7 Semester; Master IM: 3; Master Mittelstand: 3; Master GBCIM: 4','Bachelor BW/IB: 6 Semester; Master IM: 4; Master Mittelstand: 3; Master GBCIM: 3','Bachelor BW/IB: 7 Semester; Master IM: 4; Master Mittelstand: 4; Master GBCIM: 3','Bachelor BW/IB: 8 Semester; Master IM: 3; Master Mittelstand: 2; Master GBCIM: 4'],a:0,e:'§ 2 der Prüfungsordnungen W71b2024 und W74b2024 (7 Semester), W75m2019 und W76m2023 (je 3 Semester) sowie W79m2023 (4 Semester). IM = International Management, GBCIM = German Business Culture and International Management.'},
+{s:'Vergleich: Masterstudiengänge',q:'Welche Voraussetzung gilt für die Ausgabe des Themas der Masterarbeit?',o:['IM: 30 ECTS und Modul W944; Mittelstand: 50 Credits; GBCIM: 60 ECTS und Modul W944','IM: 60 ECTS und W944; Mittelstand: 50 Credits; GBCIM: 30 ECTS und W944','IM: 50 Credits; Mittelstand: 30 Credits; GBCIM: 60 Credits, jeweils ohne weiteres Modul','In allen drei Masterstudiengängen: 60 ECTS-Credits'],a:0,e:'§ 14 Abs. 5: W75m2019 (IM) verlangt 30 ECTS plus „W944 Academic Research Skills“, W76m2023 (Mittelstand) 50 Creditpoints, W79m2023 (GBCIM) 60 ECTS plus W944. Bachelor BW und IB: mindestens 170 ECTS.'},
+{s:'Vergleich: Abschlussnote',q:'Mit welchem Gewicht geht die Abschlussarbeit in die Gesamtnote der Abschlussprüfung ein?',o:['Bachelor BW/IB: 1/7; Master IM und Mittelstand: 1/3; Master GBCIM: 2/5','Bachelor BW/IB: 1/7; Master IM und Mittelstand: 2/5; Master GBCIM: 1/3','Bachelor BW/IB: 1/3; alle Master: 1/3','Bachelor BW/IB: 1/4; Master IM und Mittelstand: 1/2; Master GBCIM: 2/5'],a:0,e:'§ 16 Abs. 1: Bachelor (6 MN + 1 P) / 7; Master IM und Mittelstand (2 MN + 1 P) / 3; Master GBCIM (3 MN + 2 P) / 5. Die Gesamtnote wird ohne Rundung auf eine Dezimalstelle gekürzt.'},
+{s:'Vergleich: Sprache der Arbeit',q:'In welcher Sprache ist die Abschlussarbeit regulär anzufertigen?',o:['Bachelor BW/IB und Master Mittelstand: Deutsch (Englisch nach Absprache); Master IM und GBCIM: Englisch (Deutsch nach Absprache)','Bachelor BW/IB und Master Mittelstand: Englisch (Deutsch nach Absprache); Master IM und GBCIM: Deutsch (Englisch nach Absprache)','In allen Studiengängen ausschließlich Englisch','In allen Studiengängen ausschließlich Deutsch'],a:0,e:'§ 14 Abs. 3 der fünf Ordnungen: BW, IB und Mittelstand nennen Deutsch, in Absprache mit dem Betreuer Englisch. IM und GBCIM nennen Englisch, in Absprache mit dem Betreuer Deutsch.'},
+{s:'Vergleich: Auslandsstudium',q:'Welchen Umfang hat das Auslandsmodul in den Studiengängen mit integriertem Auslandsstudium?',o:['Master IM und GBCIM: Study Abroad mit 30 Credits; Bachelor IB: Studium Internationale mit 25 Credits','Master IM und GBCIM: 25 Credits; Bachelor IB: 30 Credits','In allen drei Studiengängen 30 Credits','Master IM: 15 Credits; Master GBCIM: 30 Credits; Bachelor IB: 25 Credits'],a:0,e:'Prüfungsablaufpläne: W448 Study Abroad (IM, GBCIM) 30 Credits; W453 Studium Internationale (Bachelor IB, W74b2024) 25 Credits. Die Masterarbeit hat in IM, GBCIM und Mittelstand je 27 Credits.'},
+{s:'Vergleich: Bearbeitungszeiten',q:'Welche Bearbeitungszeiten und Verlängerungen gelten für die Abschlussarbeit?',o:['Bachelor 9 Wochen (+ max. 3 Wochen); alle drei Master 20 Wochen (+ max. 2 Monate)','Bachelor 9 Wochen (+ max. 3 Wochen); Master IM 20, Mittelstand 24, GBCIM 26 Wochen','Bachelor 12 Wochen (+ max. 4 Wochen); alle Master 24 Wochen (+ max. 3 Monate)','Bachelor 8 Wochen (+ max. 2 Wochen); alle Master 16 Wochen (+ max. 1 Monat)'],a:0,e:'§ 14 Abs. 7 der fünf Ordnungen. Die Verlängerung setzt unverschuldete, unvorhersehbare Gründe und einen schriftlichen Antrag an den Prüfungsausschuss voraus.'},
+{s:'Vergleich: Praxisanteil',q:'Welche Aussage zum Praxisanteil im Studium trifft zu?',o:['Bachelor BW und IB: Praktikum mind. 12 Wochen, Beginn ab 140 Credits; Master Mittelstand: Praxisprojekt (10 Credits); bei IM und GBCIM entfällt § 3','Alle fünf Studiengänge verlangen ein Praktikum von mindestens 12 Wochen','Bachelor BW: 12 Wochen, Bachelor IB: 20 Wochen; die Master haben keinen Praxisanteil','Bachelor BW und IB: 20 Wochen ab 170 Credits; die Master haben keinen Praxisanteil'],a:0,e:'§ 3 PO W71b2024 und W74b2024 (12 Wochen, 140 Credits, Praktikum je 15 Credits). W76m2023: mittelstandsbezogenes Praxisprojekt (W625, 10 Credits, Praktikumsbeleg). In W75m2019 und W79m2023 steht bei § 3 „entfällt“.'},
+{s:'Alle fünf Ordnungen',q:'Innerhalb welcher Frist darf eine nicht bestandene Modulprüfung einmal wiederholt werden?',o:['innerhalb von 6 Monaten','innerhalb eines Jahres','innerhalb von 18 Monaten','innerhalb von 2 Jahren'],a:1,e:'§ 19 Abs. 2 (alle fünf Ordnungen): innerhalb eines Jahres, gerechnet ab Bekanntgabe des erstmaligen Nichtbestehens.'},
+{s:'Alle fünf Ordnungen',q:'Wie wird die Zulassung zur zweiten Wiederholung einer Modulprüfung beantragt?',o:['Schriftlich beim Prüfungsausschuss, zwei Wochen vorher','Formlos beim Prüfer zum Prüfungsbeginn; der Antrag gilt bei Teilnahme als gestellt','Automatisch, ein Antrag ist nicht nötig','Gar nicht, eine zweite Wiederholung ist ausgeschlossen'],a:1,e:'§ 8 Abs. 6 (alle fünf Ordnungen). Bei der Abschlussarbeit gilt abweichend § 14 Abs. 11: Antrag beim Prüfungsausschuss innerhalb von zwei Monaten nach Bekanntgabe der Note.'},
+{s:'Alle fünf Ordnungen',q:'Bis wann muss die schriftliche Abmeldung von einer Prüfungsleistung beim Prüfungsamt vorliegen?',o:['einen Tag vorher','drei Tage vorher','eine Woche vorher','zwei Wochen vorher'],a:2,e:'§ 8 Abs. 3 (alle fünf Ordnungen): spätestens eine Woche vor dem Prüfungstermin. Von zweiten Wiederholungsprüfungen ist keine Abmeldung möglich.'},
+{s:'Alle fünf Ordnungen',q:'Bis wann muss eine Beeinträchtigung, die einen Nachteilsausgleich begründet, dem Prüfungsausschuss spätestens angezeigt werden?',o:['eine Woche vor dem Prüfungstermin','zwei Wochen vor dem Prüfungstermin','drei Wochen vor dem Prüfungstermin','vier Wochen vor dem Prüfungstermin'],a:2,e:'§ 9 Abs. 3 (alle fünf Ordnungen): spätestens drei Wochen vor dem Prüfungstermin, danach unverzüglich nach Bekanntwerden. Dieselbe Frist gilt nach § 9 Abs. 4 für Anträge wegen Kinderbetreuung oder Pflege.'},
+{s:'Alle fünf Ordnungen',q:'Welchen Anteil des Studiums können außerhalb eines Hochschulstudiums erworbene Qualifikationen höchstens ersetzen?',o:['höchstens 25 %','höchstens 33 %','höchstens 50 %','höchstens 75 %'],a:2,e:'§ 23 Abs. 3 (alle fünf Ordnungen): höchstens 50 %. Der Antrag ist spätestens vier Wochen vor dem ersten Prüfungstermin zu stellen (§ 23 Abs. 8).'},
+{s:'Alle fünf Ordnungen',q:'Wann soll die Verteidigung der Abschlussarbeit stattfinden?',o:['Sie muss innerhalb von vier Wochen nach Abgabe stattfinden','Sie soll innerhalb von sechs Wochen, muss aber innerhalb von zwölf Wochen nach Abgabe liegen','Sie soll innerhalb von zwei Wochen, muss aber innerhalb von sechs Wochen liegen','Eine Frist ist nicht vorgesehen'],a:1,e:'§ 14 Abs. 12 (alle fünf Ordnungen), sofern alle übrigen Modulprüfungen bestanden sind. Die Verteidigung dauert in der Regel 30 bis 60 Minuten.'},
+{s:'Alle fünf Ordnungen',q:'Innerhalb welcher Frist ist Widerspruch gegen eine Entscheidung nach der Prüfungsordnung einzulegen, und wo?',o:['innerhalb von 14 Tagen beim Prüfungsamt','innerhalb eines Monats beim Prüfungsausschuss','innerhalb von drei Monaten beim Dekan','innerhalb eines Jahres bei der Rektorin'],a:1,e:'§ 28 Abs. 2 (alle fünf Ordnungen) i. V. m. § 70 VwGO: innerhalb eines Monats nach Bekanntgabe, schriftlich oder zur Niederschrift beim Prüfungsausschuss.'},
+{s:'Alle fünf Ordnungen',q:'Wie setzt sich der Prüfungsausschuss der Fakultät zusammen?',o:['Fünf Hochschullehrer','Drei Hochschullehrer, ein Mitarbeiter, ein Studierender','Je zwei Hochschullehrer, Mitarbeiter und Studierende','Vier Hochschullehrer und ein Studierender'],a:1,e:'§ 20 Abs. 1 (alle fünf Ordnungen). Amtszeit in der Regel drei Jahre, für Studierende ein Jahr; Vorsitz und Stellvertretung sind Hochschullehrer.'}
+];
+var N=Q.length,NEED=Math.ceil(N/2),i=0,sc=0,wrong=[],cur=null,done=false;
+var $=function(id){return document.getElementById(id)};
+function shuffle(a){for(var k=a.length-1;k>0;k--){var j=Math.floor(Math.random()*(k+1));var t=a[k];a[k]=a[j];a[j]=t}return a}
+function show(id){['start','quiz','res'].forEach(function(s){$(s).classList.toggle('hide',s!==id)})}
+function start(){i=0;sc=0;wrong=[];stopFx();show('quiz');ask()}
+function ask(){
+ done=false;var d=Q[i];$('cnt').textContent='Frage '+(i+1)+' von '+N;$('pg').style.width=(i/N*100)+'%';
+ $('src').textContent='Bezug: '+d.s;$('q').textContent=d.q;$('fb').classList.add('hide');$('nx').classList.add('hide');
+ var box=$('opts');box.innerHTML='';
+ cur=shuffle(d.o.map(function(t,k){return {t:t,c:k===d.a}}));
+ cur.forEach(function(op){var b=document.createElement('button');b.className='opt';b.textContent=op.t;b.onclick=function(){pick(b,op)};box.appendChild(b)});
+}
+function pick(btn,op){
+ if(done)return;done=true;var d=Q[i];var bs=document.querySelectorAll('.opt');
+ bs.forEach(function(b,k){b.disabled=true;if(cur[k].c)b.classList.add('ok')});
+ if(op.c){sc++}else{btn.classList.add('no');wrong.push({q:d.q,r:cur.filter(function(o){return o.c})[0].t,e:d.e})}
+ var f=$('fb');f.innerHTML='<strong>'+(op.c?'Richtig.':'Leider falsch.')+'</strong> '+d.e;f.classList.remove('hide');
+ $('nx').textContent=i===N-1?'Ergebnis anzeigen':'Weiter';$('nx').classList.remove('hide');
+}
+function next(){i++;if(i<N){ask()}else{finish()}}
+function finish(){
+ var ok=sc>=NEED,p=Math.round(sc/N*100);
+ var h='<h1>'+(ok?'Bestanden!':'Nicht bestanden')+'</h1><div class="score '+(ok?'pass':'fail')+'">'+sc+' / '+N+' ('+p+' %)</div>'
+ +'<p>'+(ok?'Glückwunsch, Sie haben mindestens 50 % der Fragen richtig beantwortet.':'Zum Bestehen sind mindestens '+NEED+' richtige Antworten (50 %) nötig. Versuchen Sie es gern noch einmal.')+'</p>';
+ if(wrong.length){h+='<h2>Zur Nachbereitung</h2>';wrong.forEach(function(w){h+='<div class="rev"><strong>'+w.q+'</strong><br>Richtig: '+w.r+'<br><span class="mu">'+w.e+'</span></div>'})}
+ h+='<p><button class="btn" id="again">Test wiederholen</button></p>';
+ $('res').innerHTML=h;$('again').onclick=start;show('res');window.scrollTo(0,0);if(ok)fire();
+}
+var cv=$('fx'),cx=cv.getContext('2d'),P=[],timer=null,raf=null,until=0;
+function size(){cv.width=innerWidth;cv.height=innerHeight}
+function boom(){
+ var x=Math.random()*cv.width*.8+cv.width*.1,y=Math.random()*cv.height*.45+cv.height*.1,h=Math.random()*360;
+ for(var k=0;k<80;k++){var a=Math.random()*6.283,s=Math.random()*5+1.5;P.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,h:h+Math.random()*40})}
+}
+function draw(){
+ cx.clearRect(0,0,cv.width,cv.height);
+ P=P.filter(function(p){return p.l>0});
+ P.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.vx*=.985;p.l-=.011;cx.globalAlpha=Math.max(p.l,0);cx.fillStyle='hsl('+p.h+',100%,60%)';cx.beginPath();cx.arc(p.x,p.y,2.4,0,6.283);cx.fill()});
+ cx.globalAlpha=1;
+ if(P.length||Date.now()<until){raf=requestAnimationFrame(draw)}else{cx.clearRect(0,0,cv.width,cv.height);raf=null}
+}
+function fire(){
+ size();until=Date.now()+6000;boom();boom();
+ timer=setInterval(function(){if(Date.now()<until){boom()}else{clearInterval(timer)}},420);
+ if(!raf)draw();
+}
+function stopFx(){clearInterval(timer);P=[];until=0}
+addEventListener('resize',size);
+$('go').onclick=start;$('nx').onclick=next;
+</script>
+</body>
+</html>
